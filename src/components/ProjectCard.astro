@@ -1,0 +1,168 @@
+---
+import type { Project, ProjectLinkType } from '../content/projects';
+import ImageWithFallback from './ImageWithFallback.astro';
+
+/**
+ * ProjectCard.astro — a single featured-project card.
+ *
+ * A ground-up reimplementation of the inspiration's `ProjectCard` shape (an
+ * optional top media area, a title + date + description header, a wrapped row
+ * of tag badges, and a footer row of link badges) against this project's
+ * {@link Project} content model and theme tokens. No inspiration code or copy
+ * is reused — only the general card anatomy.
+ *
+ * Props are the fields of a validated {@link Project}:
+ *  - `title`       (required) project name.
+ *  - `description` (required) prose blurb, rendered muted.
+ *  - `dates`       (required) human-readable period/year, rendered small+muted.
+ *  - `tags`        technology list, rendered as wrapping secondary badges.
+ *  - `links`       optional external links, rendered as icon+type badges in the
+ *                  footer that open in a new tab.
+ *  - `image`       optional media; when present it fills the top media area via
+ *                  {@link ImageWithFallback} (object-cover, fixed h-40). When
+ *                  absent a tasteful gradient placeholder with a folder glyph is
+ *                  shown so the missing image reads as intentional.
+ *
+ * Layout/theme: the card uses only theme tokens (`bg-card`, `border-border`,
+ * `text-muted-foreground`, `text-primary`, ...) so it adapts to either theme,
+ * has a `rounded-lg` border, and lifts on hover (`hover:shadow-lg`). The whole
+ * card is a flex column so cards in a grid row share equal height and the
+ * footer link row sits at the bottom.
+ */
+interface Props {
+  title: Project['title'];
+  description: Project['description'];
+  dates: Project['dates'];
+  tags: Project['tags'];
+  links?: Project['links'];
+  image?: Project['image'];
+}
+
+const { title, description, dates, tags, links, image } = Astro.props;
+
+// Only render the footer link row when there is at least one link.
+const projectLinks = links ?? [];
+const hasLinks = projectLinks.length > 0;
+
+/**
+ * Inline SVG glyph markup per link type (24x24, currentColor stroke) so each
+ * link badge carries a small type-appropriate icon with zero extra deps. The
+ * `other` glyph (and any unknown type) falls back to a generic external-link
+ * arrow.
+ */
+const LINK_ICONS: Record<ProjectLinkType, string> = {
+  github:
+    '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>',
+  website:
+    '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  demo: '<polygon points="5 3 19 12 5 21 5 3"/>',
+  other:
+    '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+};
+
+/** Human-readable label per link type shown next to the icon. */
+const LINK_LABELS: Record<ProjectLinkType, string> = {
+  github: 'GitHub',
+  website: 'Website',
+  demo: 'Demo',
+  other: 'Link',
+};
+---
+
+<article
+  class="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground transition-shadow duration-300 hover:shadow-lg"
+>
+  {/* Optional top media area. When an image is present it fills a fixed-height
+      cover slot (with the shared error fallback); otherwise a gradient
+      placeholder with a folder glyph keeps the missing image looking
+      intentional. */}
+  {
+    image ? (
+      <ImageWithFallback
+        src={image}
+        alt={title}
+        aspectRatio="16 / 9"
+        class="h-40 w-full"
+        imgClass="h-40 w-full"
+        objectFit="cover"
+      />
+    ) : (
+      <div
+        class="flex h-40 w-full items-center justify-center bg-gradient-to-br from-muted via-card to-accent/20"
+        aria-hidden="true"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="text-muted-foreground/60"
+        >
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+      </div>
+    )
+  }
+
+  <div class="flex flex-1 flex-col gap-3 p-5">
+    <div class="space-y-1">
+      <h3 class="text-lg font-semibold leading-snug tracking-tight">
+        {title}
+      </h3>
+      <p class="text-xs text-muted-foreground">{dates}</p>
+    </div>
+
+    <p class="prose-sm max-w-none text-sm leading-relaxed text-muted-foreground">
+      {description}
+    </p>
+
+    {
+      tags.length > 0 && (
+        <ul class="flex flex-wrap gap-1.5 pt-1" role="list">
+          {tags.map((tag) => (
+            <li>
+              <span class="inline-flex items-center rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {tag}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      hasLinks && (
+        <div class="mt-auto flex flex-wrap gap-2 pt-3">
+          {projectLinks.map((link) => (
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex min-h-[32px] items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-card-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                set:html={LINK_ICONS[link.type]}
+              />
+              <span>{LINK_LABELS[link.type]}</span>
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</article>

@@ -1,0 +1,167 @@
+---
+import { homelabComponents, services } from '../content/homelab';
+import ImageCompareSlider from './ImageCompareSlider.tsx';
+
+/**
+ * HomelabSection.astro — the detailed Homelab_Section content.
+ *
+ * Renders the validated homelab content from `content/homelab.ts`:
+ * - The three hardware components (Req 4.1–4.3): the TrueNAS storage server,
+ *   the mini PC cluster on an 8-port gigabit switch, and the i5 master node
+ *   plus worker mini PCs running k3s and Proxmox.
+ * - The exactly-six self-hosted services (Req 4.4): Jellyfin, Immich, Seafile,
+ *   qBittorrent, WireGuard, and Vaultwarden, each with its purpose description.
+ *
+ * This component intentionally does NOT own the `<section>` landmark or the
+ * `h2#homelab-heading` — those live in `index.astro`. It is embedded *inside*
+ * the existing `<section id="homelab">` by the composition step, so it renders
+ * only the section's inner content and never duplicates the heading.
+ *
+ * Motion (wired client-side through the single AnimationEngine facade):
+ * - Each homelab component is scroll-revealed once per page load; the reveal
+ *   starts within 200ms and completes within 1000ms of ~25% of the component
+ *   entering the viewport (Req 4.5), always ending in the fully visible final
+ *   state (Req 4.6). The engine's `reveal` enforces the once-per-load and
+ *   timing bounds.
+ * - Under a reduced-motion preference the engine renders each component
+ *   directly in its final visible state with no reveal animation (Req 4.7),
+ *   and any animation failure snaps the component to its final visible state.
+ *   Both rules live inside the engine, and every component renders its final
+ *   visible CSS by default so content is never hidden without JS (Req 4.6).
+ */
+---
+
+<div class="homelab mt-6" data-homelab>
+  <p class="homelab__intro max-w-2xl text-base text-muted-foreground">
+    A self-hosted stack running on mini PCs and dedicated storage — everything
+    from clustered compute to media, photos, files, and secure remote access.
+  </p>
+
+  {/* Before/after compare slider, right below the intro. Placeholder-ready:
+      shows tasteful placeholders until diagram/photo images are added. */}
+  <div class="mx-auto mt-6 max-w-sm">
+    <ImageCompareSlider client:visible beforeLabel="Diagram" afterLabel="Photo" />
+  </div>
+
+  <!-- Hardware / infrastructure components (Req 4.1–4.3). -->
+  <h3 class="homelab__subheading mt-12 text-xl font-semibold tracking-tight">
+    Infrastructure
+  </h3>
+  <ul
+    class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3"
+    role="list"
+  >
+    {
+      homelabComponents.map((component) => (
+        <li>
+          <article
+            class="homelab-card"
+            data-homelab-component
+            data-component-id={component.id}
+          >
+            <h4 class="homelab-card__title">{component.title}</h4>
+            <p class="homelab-card__body">{component.description}</p>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+
+  <!-- Self-hosted services (Req 4.4): exactly the six named services, each
+       with its purpose. -->
+  <h3 class="homelab__subheading mt-16 text-xl font-semibold tracking-tight">
+    Self-hosted services
+  </h3>
+  <ul
+    class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+    role="list"
+  >
+    {
+      services.map((service) => (
+        <li>
+          <article
+            class="homelab-service"
+            data-homelab-component
+            data-service-name={service.name}
+          >
+            <h4 class="homelab-service__name">{service.name}</h4>
+            <p class="homelab-service__purpose">{service.purpose}</p>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style>
+  /* Every card renders in its final, fully visible state by default so all
+     homelab content stays visible even if JS never runs or a reveal fails
+     (Req 4.6). The engine applies the entrance offset by JS only once it has
+     confirmed it is live. */
+  .homelab-card,
+  .homelab-service {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(var(--border));
+    background: rgb(var(--card) / 0.6);
+    padding: 1.25rem;
+  }
+
+  .homelab-card__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: rgb(var(--card-foreground));
+  }
+
+  .homelab-card__body {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: rgb(var(--muted-foreground));
+  }
+
+  .homelab-service__name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(var(--accent));
+  }
+
+  .homelab-service__purpose {
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: rgb(var(--muted-foreground));
+  }
+</style>
+
+<script>
+  import { getAnimationEngine } from '../lib/animation/AnimationEngine';
+
+  // Reveal timing stays within the Req 4.5 bounds (start <=200ms, complete
+  // <=1000ms); the engine clamps defensively to the same bounds.
+  const REVEAL_START_DELAY_MS = 80;
+  const REVEAL_DURATION_MS = 700;
+
+  const engine = getAnimationEngine();
+  const components = document.querySelectorAll<HTMLElement>(
+    '[data-homelab-component]',
+  );
+
+  components.forEach((component) => {
+    // Scroll-reveal each homelab component once per load, starting within
+    // 200ms and completing within 1000ms of entering the viewport (Req 4.5),
+    // ending fully visible (Req 4.6). Reduced-motion (Req 4.7) and
+    // animation-failure fallbacks are handled centrally inside the engine —
+    // the component already renders in its final visible state by default.
+    engine.reveal(component, {
+      startDelayMs: REVEAL_START_DELAY_MS,
+      durationMs: REVEAL_DURATION_MS,
+      motion: {
+        kind: 'translate',
+        startDelayMs: REVEAL_START_DELAY_MS,
+        durationMs: REVEAL_DURATION_MS,
+      },
+    });
+  });
+</script>

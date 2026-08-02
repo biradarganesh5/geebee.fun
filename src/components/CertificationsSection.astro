@@ -1,0 +1,56 @@
+---
+import { certifications } from '../content/certifications';
+import CertificationCard from './CertificationCard.tsx';
+
+/**
+ * CertificationsSection.astro — the Certifications_Section overview.
+ *
+ * Renders exactly the three validated AWS certifications from the content layer
+ * (Req 7.1), each as a {@link CertificationCard} island carrying exactly one
+ * image reference and its non-empty alt text (Req 7.2). Each card owns its own
+ * hover/focus transform + revert (Req 7.3/7.4) and image-load-failure fallback
+ * (Req 7.5); this section is a pure layout/composition wrapper over them.
+ *
+ * The cards are interactive React islands hydrated with `client:visible` so the
+ * transform wiring only loads once this below-the-fold section scrolls into
+ * view, keeping first paint static (Req 10.5).
+ *
+ * This component owns its `<section>` landmark (id, aria-labelledby, and the
+ * scroll-mt offset so navigation anchors land below the fixed header), matching
+ * the shape of the other section components (e.g. HobbiesSection). When this
+ * component is composed into `index.astro`, it replaces the stub section that
+ * currently holds the `certifications` landmark + heading, so there is exactly
+ * one `#certifications` section and one `#certifications-heading` on the page.
+ */
+---
+
+<section
+  id="certifications"
+  aria-labelledby="certifications-heading"
+  class="mx-auto max-w-2xl scroll-mt-24 px-4 py-8"
+>
+  <h2
+    id="certifications-heading"
+    class="text-3xl font-semibold tracking-tight md:text-4xl"
+  >
+    Certifications
+  </h2>
+
+  <ul
+    class="mt-6 grid grid-cols-3 gap-3 sm:gap-4"
+    role="list"
+  >
+    {
+      certifications.map((cert) => (
+        <li>
+          <CertificationCard
+            client:visible
+            name={cert.name}
+            imageUrl={cert.imageUrl}
+            altText={cert.altText}
+          />
+        </li>
+      ))
+    }
+  </ul>
+</section>

@@ -1,0 +1,224 @@
+---
+/**
+ * ImageWithFallback.astro — shared image error-fallback primitive.
+ *
+ * A reusable wrapper around a content `<img>` that implements the site-wide
+ * image error-handling contract from design.md ("Error Handling"):
+ *
+ *  - The image renders inside a slot whose dimensions are *reserved up front*
+ *    from an explicit aspect ratio (either `aspectRatio` or `width`/`height`).
+ *    Because the slot holds its size before, during, and after loading, a load
+ *    failure causes NO layout shift (Req 10.4).
+ *  - On `onerror`, the broken `<img>` is hidden (so the browser never paints a
+ *    broken-image icon) and a styled alt-text box — sized to the exact same
+ *    reserved slot — is revealed in its place, surfacing the descriptive
+ *    alternative text (Req 10.4, and the cert-image fallback contract Req 7.5).
+ *  - The swap is driven by an inline `onerror` handler that only toggles a data
+ *    attribute on the root, so it works with zero client JS/hydration and can
+ *    never itself fail to run.
+ *
+ * API (kept intentionally small so any content image can adopt it):
+ *   - `src`            (required) image URL.
+ *   - `alt`            (required) descriptive alt text; also shown on failure.
+ *   - `width`/`height` intrinsic pixel size; used to reserve the aspect-ratio
+ *                      slot (and passed to the <img> to aid the browser).
+ *   - `aspectRatio`    explicit CSS aspect-ratio (e.g. "3 / 2" or "1.5"); takes
+ *                      precedence over width/height for the reserved slot.
+ *   - `class`          extra classes for the root slot element.
+ *   - `imgClass`       extra classes for the inner <img>.
+ *   - `sizes`/`srcset` responsive passthrough for viewport-matched delivery.
+ *   - `loading`        native lazy/eager hint (defaults to "lazy").
+ *   - `decoding`       native decode hint (defaults to "async").
+ *   - `fetchpriority`  native priority hint.
+ *   - `objectFit`      how the image fills the reserved slot (defaults "cover").
+ *   - `lazy`           opt into the IntersectionObserver one-viewport loader.
+ *
+ * Below-the-fold lazy loading (Req 10.3):
+ *  - Passing `lazy` renders the image with `data-lazy` + `data-src`/`data-srcset`
+ *    (the real `src`/`srcset` are held back) so the shared `initLazyMedia`
+ *    loader (wired once in `Layout.astro`) promotes them to real sources only
+ *    once the image comes within one viewport height of the scroll position.
+ *  - A `<noscript>` fallback with the eager/native-lazy `<img>` is emitted for
+ *    the zero-JS case, so the media still loads even if the loader never runs.
+ *    This keeps the "media always loads" resilience contract intact.
+ *
+ * NOTE: `HeroImage.astro` and `CertificationCard.tsx` already implement the
+ * error-fallback contract inline (broken image hidden → alt-text box in a
+ * dimension-preserving slot). The certification images additionally already use
+ * native `loading="lazy"`; they are intentionally NOT refactored onto this
+ * primitive. This component exists so any *new* content image can adopt the
+ * identical error-fallback and one-viewport lazy-loading behavior without
+ * re-implementing it.
+ */
+interface Props {
+  /** Image URL. */
+  src: string;
+  /** Descriptive alternative text; also surfaced in place on load failure. */
+  alt: string;
+  /** Intrinsic width in px; used to reserve the aspect-ratio slot. */
+  width?: number;
+  /** Intrinsic height in px; used to reserve the aspect-ratio slot. */
+  height?: number;
+  /** Explicit CSS aspect ratio (e.g. "3 / 2"). Overrides width/height. */
+  aspectRatio?: string;
+  /** Extra classes for the root slot element. */
+  class?: string;
+  /** Extra classes for the inner <img>. */
+  imgClass?: string;
+  /** Responsive `sizes` passthrough. */
+  sizes?: string;
+  /** Responsive `srcset` passthrough. */
+  srcset?: string;
+  /** Native loading hint. */
+  loading?: 'lazy' | 'eager';
+  /** Native decoding hint. */
+  decoding?: 'async' | 'sync' | 'auto';
+  /** Native fetch-priority hint. */
+  fetchpriority?: 'high' | 'low' | 'auto';
+  /** How the image fills the reserved slot. */
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
+  /**
+   * Opt into the shared IntersectionObserver one-viewport lazy loader (Req 10.3):
+   * the real `src`/`srcset` are deferred behind `data-src`/`data-srcset` and a
+   * `<noscript>` native-lazy fallback is emitted for the zero-JS case.
+   */
+  lazy?: boolean;
+}
+
+const {
+  src,
+  alt,
+  width,
+  height,
+  aspectRatio,
+  class: className,
+  imgClass,
+  sizes,
+  srcset,
+  loading = 'lazy',
+  decoding = 'async',
+  fetchpriority,
+  objectFit = 'cover',
+  lazy = false,
+} = Astro.props;
+
+// Reserve the slot's dimensions up front so a load failure causes no layout
+// shift (Req 10.4). Prefer an explicit aspectRatio, else derive from w/h.
+const resolvedAspectRatio =
+  aspectRatio ?? (width && height ? `${width} / ${height}` : undefined);
+
+const rootStyle = [
+  resolvedAspectRatio ? `aspect-ratio:${resolvedAspectRatio}` : null,
+]
+  .filter(Boolean)
+  .join(';');
+---
+
+<div
+  class:list={['iwf', className]}
+  data-image-fallback
+  style={rootStyle || undefined}
+>
+  {/* When `lazy`, the real `src`/`srcset` are held in `data-src`/`data-srcset`
+      and promoted by the shared one-viewport loader (Req 10.3); otherwise they
+      are set directly. `loading="lazy"` is always kept as a native second line
+      of defense. */}
+  <img
+    class:list={['iwf__img', imgClass]}
+    src={lazy ? undefined : src}
+    data-src={lazy ? src : undefined}
+    alt={alt}
+    width={width}
+    height={height}
+    sizes={sizes}
+    srcset={lazy ? undefined : srcset}
+    data-srcset={lazy ? srcset : undefined}
+    loading={loading}
+    decoding={decoding}
+    fetchpriority={fetchpriority}
+    style={`object-fit:${objectFit}`}
+    data-image-fallback-img
+    data-lazy={lazy ? true : undefined}
+    onerror="this.closest('[data-image-fallback]')?.setAttribute('data-errored','true')"
+  />
+
+  {/* Zero-JS resilience: if the lazy loader never runs, this native <img> still
+      loads the media (Req 10.3 fallback). Only emitted in lazy mode. */}
+  {
+    lazy && (
+      <noscript>
+        <img
+          class:list={['iwf__img', imgClass]}
+          src={src}
+          alt={alt}
+          width={width}
+          height={height}
+          sizes={sizes}
+          srcset={srcset}
+          loading="lazy"
+          decoding={decoding}
+          style={`object-fit:${objectFit}`}
+        />
+      </noscript>
+    )
+  }
+
+  {/* Styled alt-text box sized to the same reserved slot. Hidden until the
+      image errors, then revealed in place — no broken-image icon (Req 10.4). */}
+  <div class="iwf__fallback" data-image-fallback-text>
+    <p class="iwf__fallback-text">{alt}</p>
+  </div>
+</div>
+
+<style>
+  .iwf {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Neutral base so the reserved slot is never empty while loading. */
+    background-color: #171717;
+  }
+
+  .iwf__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* On error the image is removed from the box entirely so the browser can
+     never paint a broken-image icon; the fallback box takes over (Req 10.4). */
+  .iwf[data-errored='true'] .iwf__img {
+    display: none;
+  }
+
+  /* The fallback occupies the exact reserved slot, so swapping in preserves the
+     surrounding layout dimensions (no layout shift). */
+  .iwf__fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    text-align: center;
+    background: radial-gradient(
+      circle at 50% 35%,
+      #262626 0%,
+      #171717 65%,
+      #0a0a0a 100%
+    );
+  }
+
+  .iwf[data-errored='true'] .iwf__fallback {
+    display: flex;
+  }
+
+  .iwf__fallback-text {
+    max-width: 90%;
+    color: #d4d4d4; /* neutral-300 */
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+</style>

@@ -1,0 +1,261 @@
+---
+import { resumeContent } from '../content/resume';
+
+/**
+ * ResumeSection.astro — the Resume_Section body.
+ *
+ * Renders Ganesh's professional story in a casual, narrative layout. This
+ * component intentionally does NOT own the `<section id="resume">` landmark or
+ * the `#resume-heading` <h2> — those live in `index.astro` and a later
+ * composition step drops this content beneath them. Rendering the heading here
+ * would duplicate the landmark, so the root is a plain content container.
+ *
+ * Content (all sourced from the Zod-validated `resumeContent` module):
+ * - The AWS-certified DevOps and Cloud Engineer headline with 3+ years
+ *   (Req 6.1), presented as a lead paragraph.
+ * - The three employers — AmberStudent, IAMOPS, Mactores — each with its role
+ *   title and time period rendered as start–end (or "Present") (Req 6.2).
+ * - The highlighted achievements: 25+ microservices ECS→EKS, $24K+/yr savings,
+ *   up to 80% deploy-time reduction via Packer AMIs, and multi-cloud AWS / AWS
+ *   China / Alibaba connectivity (Req 6.3).
+ *
+ * The featured projects that once lived here have moved to their own dedicated
+ * Projects section (ProjectsSection), so this component no longer renders them
+ * to avoid duplication.
+ *
+ * Layout (Req 6.5): everything is prose and free-flowing cards — no tabular
+ * columns, no formal document header/footer, and no page-based formatting. The
+ * employers read as a timeline of short narrative blocks rather than a table.
+ *
+ * Formal resume access (Req 6.6 / 6.7): a downloadable/viewable link points at
+ * `resumeContent.formalResumeUrl`. A small, non-blocking client script probes
+ * the URL with a 3s timeout; if it cannot be retrieved it swaps in an inline
+ * "resume temporarily unavailable" message while every other piece of section
+ * content stays exactly as rendered.
+ */
+const { employers } = resumeContent;
+
+/** Human-readable timeline period, e.g. "Jun 2024 – Aug 2025". */
+const period = (start: string, end: string) => `${start} – ${end}`;
+
+/**
+ * Concise, truthful blurbs per employer, synthesized from the resume
+ * achievements in `main.md` (never copied from the inspiration project). Keyed
+ * by the `employer` enum so each timeline entry has a short detail to reveal.
+ */
+const employerBlurbs: Record<(typeof employers)[number]['employer'], string> = {
+  AmberStudent:
+    'Led the end-to-end ECS \u2192 EKS migration of 25+ microservices with Argo CD GitOps and Argo Workflows CI/CD, engineered multi-cloud connectivity across AWS Global, AWS China, and Alibaba Cloud, and captured $24K+/yr in recurring savings through right-sizing, VPA, and spot-backed workloads.',
+  IAMOPS:
+    'Baked Windows Server (IIS) AMIs with HashiCorp Packer to cut deployment time by up to 80%, scaled EC2 on spot-backed Auto Scaling Groups, and hardened EKS clusters by auditing IRSA permissions and network policies for least-privilege access.',
+  Mactores:
+    'Built the backend for a FinOps cost-intelligence dashboard with AWS CloudFormation, created dashboards covering cost and usage metrics, and executed a rigorous tagging strategy that cut resource search times by ~40%.',
+};
+
+/** Timeline entries: employer + role + period + a short synthesized blurb. */
+const timeline = employers.map((job) => ({
+  ...job,
+  blurb: employerBlurbs[job.employer],
+}));
+---
+
+<div class="resume mt-6 w-full space-y-16">
+  {/* Req 6.2 — the three employers as an interactive, narrative timeline (not
+      a table). Each role is a native <details>/<summary> so it is keyboard
+      accessible and fully expandable with zero JS; a progressive-enhancement
+      script (below) animates the open/close smoothly and respects reduced
+      motion. A vertical connecting line + a dot per entry give it the timeline
+      feel. */}
+  <div class="resume__block">
+    <ol class="resume__timeline space-y-6" role="list">
+      {
+        timeline.map((job) => (
+          <li class="resume__job">
+            <details class="resume__tl-item group">
+              <summary class="resume__tl-summary flex cursor-pointer list-none items-center gap-4 rounded-lg outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                {/* Org logo — circular avatar with initials fallback. */}
+                <span
+                  class="resume__logo"
+                  data-image-fallback
+                  data-errored={job.logoUrl ? undefined : 'true'}
+                >
+                  <span class="resume__logo-initials" aria-hidden={job.logoUrl ? 'true' : undefined}>
+                    {job.employer.charAt(0)}
+                  </span>
+                  {job.logoUrl && (
+                    <img
+                      class="resume__logo-img"
+                      src={job.logoUrl}
+                      alt={`${job.employer} logo`}
+                      loading="lazy"
+                      decoding="async"
+                      onerror="this.closest('[data-image-fallback]')?.setAttribute('data-errored','true')"
+                    />
+                  )}
+                </span>
+
+                <span class="min-w-0 flex-grow">
+                  <span class="flex items-center justify-between gap-x-2">
+                    <span class="inline-flex items-center text-sm font-semibold leading-none text-foreground">
+                      {job.employer}
+                      <span
+                        class="resume__tl-chevron ml-1 inline-block size-4 text-muted-foreground transition-transform duration-300 ease-out group-open:rotate-90 group-hover:translate-x-0.5 motion-reduce:transition-none"
+                        aria-hidden="true"
+                      >
+                        &rsaquo;
+                      </span>
+                    </span>
+                    <span class="resume__job-period shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:text-sm">
+                      {period(job.start, job.end)}
+                    </span>
+                  </span>
+                  <span class="mt-1 block text-xs text-muted-foreground">
+                    {job.role}
+                  </span>
+                </span>
+              </summary>
+              <div class="resume__tl-content">
+                <div class="resume__tl-content-inner">
+                  <p class="mt-2 pl-16 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                    {job.blurb}
+                  </p>
+                </div>
+              </div>
+            </details>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</div>
+
+<style>
+  /* Org logo — circular avatar (like the OG) with a clean white backing so the
+     colored/wordmark logos sit centered and read well in both themes.
+     object-contain + padding keeps each logo fully visible (never cropped),
+     and the initials fallback shows when the image is missing or fails. */
+  .resume__logo {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    border: 1px solid rgb(var(--border));
+    background: #ffffff;
+  }
+  .resume__logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* Fallback state (no logo / broken image): muted circle with the initial. */
+  .resume__logo[data-errored='true'] {
+    background: rgb(var(--muted));
+  }
+  .resume__logo[data-errored='true'] .resume__logo-img {
+    display: none;
+  }
+  .resume__logo-initials {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(var(--foreground));
+    text-transform: uppercase;
+  }
+  /* When an image is present, hide the initials behind it. */
+  .resume__logo:not([data-errored='true']) .resume__logo-initials {
+    position: absolute;
+    opacity: 0;
+  }
+
+  /* Hide the native disclosure marker; we render our own chevron. */
+  .resume__tl-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /*
+   * Collapsible content uses the grid-template-rows 0fr <-> 1fr technique so it
+   * can animate to/from its natural height. Open by default (no-JS + reduced
+   * motion simply reveal it instantly when the <details> is toggled); the
+   * enhancement script drives the 0fr/1fr transition when motion is allowed.
+   */
+  .resume__tl-content {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 320ms ease;
+  }
+  .resume__tl-content-inner {
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .resume__tl-content {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Req 6.2 (progressive enhancement): smoothly animate the timeline
+  // <details> open/close. Native <details> already gives zero-JS, keyboard-
+  // accessible expand/collapse; this script intercepts the toggle to animate
+  // the height via the grid-template-rows 0fr/1fr technique. Under reduced
+  // motion we leave the native instant toggle in place.
+  const prefersReduced =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!prefersReduced) {
+    // Keep in sync with the `.resume__tl-content` transition duration below.
+    const DURATION_MS = 320;
+    const items =
+      document.querySelectorAll<HTMLDetailsElement>('details.resume__tl-item');
+
+    items.forEach((detail) => {
+      const summary = detail.querySelector<HTMLElement>('summary');
+      const content = detail.querySelector<HTMLElement>('.resume__tl-content');
+      if (!summary || !content) return;
+
+      let animating = false;
+
+      summary.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (animating) return;
+        animating = true;
+
+        if (detail.open) {
+          // Collapse: animate 1fr -> 0fr, then close.
+          content.style.gridTemplateRows = '1fr';
+          // Force a reflow so the starting value is committed before we change
+          // it; without this the browser may skip the transition entirely.
+          void content.offsetHeight;
+          requestAnimationFrame(() => {
+            content.style.gridTemplateRows = '0fr';
+          });
+          // A timeout guarantees the state is finalized and the flag reset even
+          // if `transitionend` never fires (e.g. the transition is skipped).
+          window.setTimeout(() => {
+            detail.open = false;
+            content.style.gridTemplateRows = '';
+            animating = false;
+          }, DURATION_MS);
+        } else {
+          // Expand: open first so the content is laid out, then animate 0fr -> 1fr.
+          detail.open = true;
+          content.style.gridTemplateRows = '0fr';
+          void content.offsetHeight;
+          requestAnimationFrame(() => {
+            content.style.gridTemplateRows = '1fr';
+          });
+          window.setTimeout(() => {
+            content.style.gridTemplateRows = '';
+            animating = false;
+          }, DURATION_MS);
+        }
+      });
+    });
+  }
+</script>

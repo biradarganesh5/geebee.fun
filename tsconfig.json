@@ -1,0 +1,23 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@logic/*": ["src/lib/logic/*"],
+      "@animation/*": ["src/lib/animation/*"],
+      "@content/*": ["src/content/*"],
+      "@components/*": ["src/components/*"]
+    }
+  },
+  "include": ["src", ".astro/types.d.ts", "astro.config.mjs"],
+  "exclude": ["dist", "node_modules"]
+}

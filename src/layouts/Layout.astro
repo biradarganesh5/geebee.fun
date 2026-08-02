@@ -1,0 +1,108 @@
+---
+import '../styles/global.css';
+
+/**
+ * Document shell for the Portfolio_Site.
+ *
+ * Provides the <head> setup (meta, fonts, global CSS), sensible SEO/Open Graph
+ * defaults, language, and viewport meta. Astro renders this to static HTML so
+ * above-the-fold content paints without waiting on island hydration (Req 10.5).
+ */
+interface Props {
+  title?: string;
+  description?: string;
+  /** Absolute or root-relative URL of the social share image. */
+  ogImage?: string;
+}
+
+const {
+  title = 'Ganesh Biradar — Portfolio',
+  description = 'Personal portfolio of Ganesh Biradar: homelabbing, PCB designing, 3D modelling, PC building, and AWS DevOps engineering.',
+  ogImage = '/favicon.svg',
+} = Astro.props;
+
+// Resolve a canonical/OG URL from the current request when a site is configured.
+const canonicalURL = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).toString()
+  : Astro.url.pathname;
+const resolvedOgImage = Astro.site
+  ? new URL(ogImage, Astro.site).toString()
+  : ogImage;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    {/* No-flash theme init. Runs synchronously before any content paints so the
+        correct `.dark`/`.light` class is on <html> for the very first frame,
+        preventing a flash of the wrong theme. Reads the persisted choice from
+        localStorage ('theme' = 'light' | 'dark'); when absent it falls back to
+        the OS `prefers-color-scheme`. Dark is the default on any failure. */}
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark';
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
+    <!-- Primary SEO meta -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content="Ganesh Biradar" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={resolvedOgImage} />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={resolvedOgImage} />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  </head>
+  <body class="bg-background text-foreground font-sans antialiased">
+    <slot />
+
+    <script>
+      // Lazy-load below-the-fold, non-critical media (Req 10.3). Any element
+      // opting in with `data-lazy` + `data-src`/`data-srcset` begins loading
+      // once it comes within one viewport height of the current scroll
+      // position. The Hero_Image is critical/eager (fetchpriority="high") and is
+      // never marked `data-lazy`, so it is untouched. If IntersectionObserver is
+      // unavailable or setup fails, the utility promotes all opt-in media
+      // immediately so nothing stays hidden.
+      import { initLazyMedia } from '../lib/dom/lazyMedia';
+
+      if (typeof window !== 'undefined') {
+        initLazyMedia();
+      }
+    </script>
+  </body>
+</html>

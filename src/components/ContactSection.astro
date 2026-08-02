@@ -1,0 +1,90 @@
+---
+import { profile } from '../content/profile';
+
+/**
+ * ContactSection.astro — the "Get in Touch" contact CTA body.
+ *
+ * Reimplements the inspiration's contact CTA (a centered invitation with a
+ * mailto link) against this project's content + theme tokens. It renders a
+ * short invitation line whose "send me an email" affordance is a `mailto:` link
+ * to `profile.email`, followed by the shared {@link SocialLinks} row (GitHub,
+ * LinkedIn, Portfolio, Email) sourced from `profile.socials`.
+ *
+ * This component intentionally does NOT own the `<section id="contact">`
+ * landmark or the `h2` heading — those live in `index.astro`, which embeds this
+ * body-only content inside the existing contact section (mirroring the sibling
+ * body-only sections). It therefore renders only the section's inner content.
+ *
+ * Accessibility / layout:
+ * - The email affordance is a >=44px touch target with a primary-accent color.
+ * - The social row (SocialLinks) provides >=44x44px icon links that open
+ *   external destinations in a new tab and keep `mailto:` in-page.
+ * - Everything is centered, wraps, and uses theme tokens for all colors, so
+ *   there is no horizontal overflow down to 360px in either theme.
+ *
+ * Motion (mirrors HomelabSection.astro): the block is scroll-revealed once per
+ * load through the single AnimationEngine facade, and renders in its final
+ * visible state by default so the content is never hidden without JS and any
+ * reveal failure / reduced-motion preference simply snaps to the final state.
+ */
+---
+
+<div class="contact" data-contact>
+  <div class="contact__block">
+    <p class="contact__invite">
+      Want to chat? Just
+      <a class="contact__email-link" href={`mailto:${profile.email}`}>
+        shoot me an email
+      </a>
+      and I'll respond whenever I can.
+    </p>
+  </div>
+</div>
+
+<style>
+  /* The block renders in its final, fully visible state by default so the
+     contact content stays visible even if JS never runs or a reveal fails. The
+     engine applies the entrance offset by JS only once it confirms it is live. */
+  .contact {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .contact__block {
+    display: flex;
+    max-width: 40rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .contact__invite {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgb(var(--muted-foreground));
+  }
+
+  /* Accent link: theme primary color with an underline on hover/focus. */
+  .contact__email-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 0.125rem;
+    color: rgb(var(--primary));
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 0.25rem;
+  }
+
+  .contact__email-link:hover,
+  .contact__email-link:focus-visible {
+    text-decoration: underline;
+  }
+
+  .contact__email-link:focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+  }
+</style>

@@ -1,0 +1,78 @@
+---
+import { projects } from '../content/projects';
+import ProjectCard from './ProjectCard.astro';
+
+/**
+ * ProjectsSection.astro — the Projects_Section body.
+ *
+ * Renders the validated featured projects from `content/projects.ts` as a
+ * responsive grid of {@link ProjectCard}s: a single column on mobile and two
+ * columns from the `sm` breakpoint up. Each card owns its own media/tags/links
+ * layout; this component is a pure composition wrapper over them.
+ *
+ * This component intentionally does NOT own the `<section id="projects">`
+ * landmark or the `h2` heading — those live in `index.astro`, which embeds this
+ * body-only content inside the existing projects section (mirroring the sibling
+ * body-only sections such as HomelabSection). It therefore renders only the
+ * section's inner content.
+ *
+ * Motion (wired client-side through the single AnimationEngine facade): each
+ * card is scroll-revealed once per page load through `getAnimationEngine().reveal`.
+ * Every card renders in its final, fully visible state by default, so the
+ * content is never hidden without JS and both a reduced-motion preference and
+ * any reveal failure simply resolve to the final visible state (handled
+ * centrally inside the engine).
+ */
+---
+
+<div class="projects mt-6" data-projects>
+  <ul
+    class="grid grid-cols-1 gap-6 sm:grid-cols-2"
+    role="list"
+  >
+    {
+      projects.map((project) => (
+        <li class="h-full" data-project-reveal>
+          <ProjectCard
+            title={project.title}
+            description={project.description}
+            dates={project.dates}
+            tags={project.tags}
+            links={project.links}
+            image={project.image}
+          />
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<script>
+  import { getAnimationEngine } from '../lib/animation/AnimationEngine';
+
+  // Reveal timing mirrors the sibling sections (start <=200ms, complete
+  // <=1000ms); the engine clamps defensively to the same bounds.
+  const REVEAL_START_DELAY_MS = 80;
+  const REVEAL_DURATION_MS = 700;
+
+  if (typeof window !== 'undefined') {
+    const engine = getAnimationEngine();
+    const cards = document.querySelectorAll<HTMLElement>('[data-project-reveal]');
+
+    cards.forEach((card) => {
+      // Scroll-reveal each project card once per load, ending fully visible.
+      // Reduced-motion and animation-failure fallbacks are handled centrally
+      // inside the engine — the card already renders in its final visible
+      // state by default.
+      engine.reveal(card, {
+        startDelayMs: REVEAL_START_DELAY_MS,
+        durationMs: REVEAL_DURATION_MS,
+        motion: {
+          kind: 'translate',
+          startDelayMs: REVEAL_START_DELAY_MS,
+          durationMs: REVEAL_DURATION_MS,
+        },
+      });
+    });
+  }
+</script>

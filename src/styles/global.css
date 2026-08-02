@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Global base styles for the Portfolio_Site.
+ * Motion-based animations are suppressed for visitors who request reduced
+ * motion (Req 1.5, 3.5, 4.7, 8.2). Components layer their own motion-reduce:
+ * Tailwind variants on top of this global safety net.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Semantic color tokens for the light/dark theme system.
+ *
+ * Values are stored as space-separated RGB channels so Tailwind can compose
+ * them with an alpha channel via `rgb(var(--token) / <alpha-value>)` (see
+ * tailwind.config.mjs `theme.extend.colors`). A class strategy on <html>
+ * selects the active theme: `.dark` (the default, preserving the original
+ * neutral-950/900 + sky palette) or `.light` (a clean near-white inverse that
+ * keeps the same sky accent). `:root` carries the dark defaults so the site
+ * renders correctly even before the no-flash init script runs.
+ */
+:root,
+:root.dark {
+  color-scheme: dark;
+
+  --background: 10 10 10; /* neutral-950 */
+  --foreground: 245 245 245; /* neutral-100 */
+  --muted: 23 23 23; /* neutral-900 */
+  --muted-foreground: 163 163 163; /* neutral-400 */
+  --card: 23 23 23; /* neutral-900 */
+  --card-foreground: 245 245 245; /* neutral-100 */
+  --border: 38 38 38; /* neutral-800 */
+  --primary: 56 189 248; /* sky-400 */
+  --primary-foreground: 10 10 10; /* neutral-950 */
+  --accent: 125 211 252; /* sky-300 */
+
+  /*
+   * Fluid body typography (Req 9.2). This is the CSS clamp() expression
+   * produced by bodyFontClamp() in src/lib/logic/fluidTypography.ts: a linear
+   * ramp from 16px at a 360px viewport to 20px at 2560px. The 16px floor sits
+   * above the 14px accessibility minimum, so computed body text is always
+   * >= 14px across every supported viewport width.
+   */
+  --body-font-size: clamp(16px, 15.3455px + 0.1818vw, 20px);
+}
+
+/* Light theme override — a clean near-white surface with dark text and a
+   readable sky accent. Applied when <html> carries the `.light` class. */
+:root.light {
+  color-scheme: light;
+
+  --background: 250 250 250; /* neutral-50 */
+  --foreground: 23 23 23; /* neutral-900 */
+  --muted: 245 245 245; /* neutral-100 */
+  --muted-foreground: 82 82 82; /* neutral-600 */
+  --card: 255 255 255; /* white */
+  --card-foreground: 23 23 23; /* neutral-900 */
+  --border: 229 229 229; /* neutral-200 */
+  --primary: 14 165 233; /* sky-500 */
+  --primary-foreground: 255 255 255; /* white */
+  --accent: 2 132 199; /* sky-600 */
+}
+
+/*
+ * Reflow + overflow guards (Req 9.1, 9.5). Sections must render 360-2560px
+ * with no horizontal scroll, no overlap, and no text truncation, and must
+ * reflow on resize using fluid units rather than fixed widths.
+ */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden; /* guard against horizontal scroll (Req 9.1) */
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden; /* guard against horizontal scroll (Req 9.1) */
+  font-size: var(--body-font-size); /* fluid body typography (Req 9.2) */
+  /* Long words / URLs wrap instead of forcing horizontal overflow (Req 9.1). */
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/*
+ * Replaced (embedded) content must never exceed its container width, which
+ * would introduce horizontal scrolling on narrow viewports (Req 9.1, 9.5).
+ */
+img,
+picture,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
+}

@@ -1,0 +1,101 @@
+---
+/**
+ * Avatar.astro — a circular avatar with a dependency-free initials fallback.
+ *
+ * Renders the profile portrait as a circular image. It reuses the site-wide
+ * image error-handling contract (see `ImageWithFallback.astro`): the failing
+ * `<img>` is hidden — so the browser never paints a broken-image icon — and a
+ * centered initials circle is revealed in its exact place. Because the root
+ * reserves its `size × size` box up front, a load failure (or a missing asset)
+ * causes NO layout shift.
+ *
+ * The swap is driven by an inline `onerror` handler that only toggles a data
+ * attribute on the root, so it works with zero client JS/hydration and can
+ * never itself fail to run. When `src` is empty the component starts in the
+ * errored state, so the initials show cleanly without ever requesting an image.
+ *
+ * NOTE: `profile.avatarUrl` currently points at `/images/avatar.jpg`, which
+ * does not exist yet — so by default the initials fallback ("GB") is shown.
+ *
+ * Theme tokens (from tailwind.config.mjs): a subtle `border-border`, a neutral
+ * `bg-muted` base, and `text-foreground` initials keep it correct in both the
+ * light and dark themes.
+ *
+ * API (kept intentionally small):
+ *   - `src`      (required) image URL.
+ *   - `alt`      (required) descriptive alternative text for the image.
+ *   - `initials` (required) short fallback text shown when the image is
+ *                missing/errors (e.g. "GB").
+ *   - `size`     circular diameter in px (default 112); reserves the box.
+ *   - `class`    extra classes for the root element.
+ */
+interface Props {
+  /** Image URL. */
+  src: string;
+  /** Descriptive alternative text for the image. */
+  alt: string;
+  /** Short fallback text shown when the image is missing/errors (e.g. "GB"). */
+  initials: string;
+  /** Circular diameter in px. Reserves the box so there is no layout shift. */
+  size?: number;
+  /** Extra classes for the root element. */
+  class?: string;
+}
+
+const { src, alt, initials, size = 112, class: className } = Astro.props;
+
+// Reserve the exact circular box up front (no layout shift on load/fail).
+const boxStyle = `width:${size}px;height:${size}px`;
+
+// Scale the initials to the diameter so they stay centered and legible at any
+// size (roughly 36% of the diameter, a comfortable monogram proportion).
+const initialsStyle = `font-size:${Math.round(size * 0.36)}px`;
+
+// With no image URL there is nothing to load: start errored so the initials
+// show immediately and no request is ever made.
+const hasSrc = typeof src === 'string' && src.length > 0;
+---
+
+<span
+  class:list={[
+    'avatar relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted align-middle',
+    className,
+  ]}
+  style={boxStyle}
+  data-image-fallback
+  data-errored={hasSrc ? undefined : 'true'}
+>
+  {/* Initials fallback sits underneath, centered, and is revealed whenever the
+      image is absent or errors — never a broken-image icon. */}
+  <span
+    class="avatar__initials font-semibold uppercase leading-none tracking-wide text-foreground select-none"
+    style={initialsStyle}
+    aria-hidden={hasSrc ? 'true' : undefined}
+  >
+    {initials}
+  </span>
+
+  {
+    hasSrc && (
+      <img
+        class="avatar__img absolute inset-0 h-full w-full object-cover"
+        src={src}
+        alt={alt}
+        width={size}
+        height={size}
+        decoding="async"
+        loading="lazy"
+        data-image-fallback-img
+        onerror="this.closest('[data-image-fallback]')?.setAttribute('data-errored','true')"
+      />
+    )
+  }
+</span>
+
+<style>
+  /* On error the image is removed from the box entirely so the browser can
+     never paint a broken-image icon; the initials underneath take over. */
+  .avatar[data-errored='true'] .avatar__img {
+    display: none;
+  }
+</style>

@@ -1,0 +1,271 @@
+---
+import { hobbies } from '../content/hobbies';
+import type { MotionKind } from '../lib/logic/resolveMotion';
+
+/**
+ * HobbiesSection.astro — the content of the high-level Hobbies_Section overview.
+ *
+ * This component is designed to be embedded INSIDE an existing
+ * `<section id="hobbies">` landmark that already carries the section's
+ * `h2#hobbies-heading` (composed in index.astro). To avoid a duplicate landmark
+ * and a duplicate `h2#hobbies-heading`, it therefore renders only the section's
+ * body — an intro subheading and the three hobby entries — not its own
+ * `<section>` or `<h2>`.
+ *
+ * Renders exactly the three hobby entries from the validated content module
+ * (Homelabbing, PCB designing, 3D modelling), each carrying a text label
+ * (Req 3.1). Every entry gets a visually distinct treatment: its `styleVariant`
+ * drives a unique visual style and its `animationVariant` drives a unique reveal
+ * animation, so no two entries share the same style+animation combination
+ * (Req 3.2 — the uniqueness is also enforced by the Zod schema at build time).
+ *
+ * Motion (wired client-side through the single AnimationEngine facade):
+ * - Each entry is scroll-revealed once per page load; the reveal completes
+ *   within 1000ms (Req 3.3). The engine's `reveal` fires when the target is
+ *   ~25% visible and enforces the once-per-load guarantee.
+ * - Under a reduced-motion preference the engine shows each entry directly in
+ *   its final revealed state (Req 3.5), and if a reveal fails to start/complete
+ *   the entry is snapped to its fully visible final state (Req 3.6). Both rules
+ *   live inside the engine, and entries render their final visible CSS by
+ *   default so content is never hidden without JS.
+ *
+ * Activation:
+ * - The Homelabbing entry is activatable and navigates to the Homelab_Section.
+ *   It is a native in-page anchor to `#homelab`, so activation (pointer, touch,
+ *   or keyboard) brings the Homelab_Section into view effectively immediately,
+ *   well within the 2s bound (Req 3.4).
+ */
+
+/** Maps each hobby's animation token to a motion kind understood by the engine. */
+const MOTION_KIND_BY_VARIANT: Record<string, MotionKind> = {
+  'slide-up': 'translate',
+  'fade-scale': 'scale',
+  'rotate-in': 'rotate',
+};
+
+// Precompute the per-entry motion kind so the client script stays data-driven.
+const entries = hobbies.map((hobby) => ({
+  ...hobby,
+  motionKind: MOTION_KIND_BY_VARIANT[hobby.animationVariant] ?? 'fade',
+}));
+---
+
+{/* Body only — the enclosing <section id="hobbies"> and its h2#hobbies-heading
+   are provided by the page composition. A subheading (h3) sits below that h2. */}
+<div class="hobbies-body">
+  <p id="hobbies-intro" class="hobbies-body__intro text-base text-muted-foreground">
+    The nerdy stuff I do for fun.
+  </p>
+
+  <ul
+    class="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+    role="list"
+  >
+    {
+      entries.map((entry) => {
+        const cardClass = `hobby-card hobby-card--${entry.styleVariant}`;
+        return (
+          <li>
+            <div
+              class:list={[cardClass, entry.imageUrl && 'hobby-card--has-image']}
+              data-hobby-entry
+              data-hobby-id={entry.id}
+              data-animation-variant={entry.animationVariant}
+              data-motion-kind={entry.motionKind}
+              data-style-variant={entry.styleVariant}
+            >
+              {entry.imageUrl && (
+                <img
+                  class="hobby-card__image"
+                  src={entry.imageUrl}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  onerror="this.setAttribute('data-errored','true')"
+                />
+              )}
+              <span class="hobby-card__label">{entry.label}</span>
+            </div>
+          </li>
+        );
+      })
+    }
+  </ul>
+</div>
+
+<style>
+  .hobbies-body__intro {
+    max-width: 42rem;
+    margin-top: 1rem;
+  }
+
+  /* Shared card scaffold. Entries render in their final visible state by
+     default so the labels + treatment stay visible even if JS never runs
+     (Req 3.6). */
+  .hobby-card {
+    position: relative;
+    display: flex;
+    /* A fixed height keeps all three cards uniform regardless of each image's
+       own dimensions, and (unlike aspect-ratio on a grid item) never conflicts
+       with the grid's stretch sizing, so cards can't overflow and overlap. */
+    height: 13rem;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    color: #f5f5f5;
+  }
+
+  .hobby-card__label {
+    position: relative;
+    z-index: 2;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    /* Keep single words like "Homelabbing" on one line in the narrow card. */
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+  }
+
+  /* Background image layer (e.g. the homelab/PCB photos). object-fit: cover
+     fills the card at any source aspect ratio without distortion. Images are
+     slightly blurred by default and sharpen (with a subtle zoom) on hover. */
+  .hobby-card__image {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(5px);
+    transform: scale(1.06);
+    transition:
+      filter 300ms ease,
+      transform 300ms ease;
+  }
+  .hobby-card--has-image:hover .hobby-card__image,
+  .hobby-card--has-image:focus-within .hobby-card__image {
+    filter: blur(0);
+    transform: scale(1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hobby-card__image {
+      transition: none;
+    }
+  }
+  /* If an image fails to load, hide it (and its overlay) so the card falls
+     back cleanly to its CSS-only treatment. */
+  .hobby-card__image[data-errored='true'] {
+    display: none;
+  }
+  .hobby-card--has-image:not(:has(.hobby-card__image[data-errored='true']))::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      to top,
+      rgba(3, 7, 18, 0.9) 0%,
+      rgba(3, 7, 18, 0.45) 45%,
+      rgba(3, 7, 18, 0.15) 100%
+    );
+  }
+
+  .hobby-card__cue {
+    font-size: 0.875rem;
+    color: #d4d4d4;
+  }
+
+  /* Activatable entry (Homelabbing) — clearly interactive and keyboard-focusable. */
+  .hobby-card--link {
+    cursor: pointer;
+    transition: box-shadow 150ms ease;
+  }
+
+  .hobby-card--link:hover,
+  .hobby-card--link:focus-visible {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+  }
+
+  /* -- Distinct visual style variants (Req 3.2) --------------------------- */
+
+  /* Homelabbing: neon-glow card. */
+  .hobby-card--card-neon {
+    background: radial-gradient(circle at 30% 20%, #1e293b, #0b1120);
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    box-shadow:
+      0 0 24px rgba(56, 189, 248, 0.35),
+      inset 0 0 24px rgba(56, 189, 248, 0.15);
+  }
+  .hobby-card--card-neon .hobby-card__label {
+    color: #bae6fd;
+    text-shadow: 0 0 4px rgba(56, 189, 248, 0.4);
+  }
+
+  /* PCB designing: circuit-board card with a traced grid pattern. */
+  .hobby-card--card-circuit {
+    background-color: #052e16;
+    background-image:
+      linear-gradient(0deg, rgba(74, 222, 128, 0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74, 222, 128, 0.18) 1px, transparent 1px);
+    background-size: 22px 22px;
+    border: 1px solid rgba(74, 222, 128, 0.5);
+  }
+  .hobby-card--card-circuit .hobby-card__label {
+    color: #bbf7d0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* 3D modelling: frosted-glass card. */
+  .hobby-card--card-glass {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+  .hobby-card--card-glass .hobby-card__label {
+    color: #f5f5f5;
+    letter-spacing: 0.02em;
+  }
+</style>
+
+<script>
+  import { getAnimationEngine } from '../lib/animation/AnimationEngine';
+  import type { MotionKind } from '../lib/logic/resolveMotion';
+
+  const REVEAL_DURATION_MS = 600;
+  const REVEAL_START_DELAY_MS = 60;
+
+  // AnimationEngine is browser-only; this <script> runs client-side, but guard
+  // for `window` defensively so the reveal wiring never executes during SSR.
+  if (typeof window !== 'undefined') {
+    const engine = getAnimationEngine();
+    const entries = document.querySelectorAll<HTMLElement>('[data-hobby-entry]');
+
+    entries.forEach((entry) => {
+      const kind = (entry.dataset.motionKind ?? 'fade') as MotionKind;
+
+      // Scroll-reveal this entry once per load, completing within 1000ms
+      // (Req 3.3). Reduced-motion (Req 3.5) and animation-failure fallback
+      // (Req 3.6) are handled centrally inside the engine — the entry already
+      // renders in its final visible state by default.
+      engine.reveal(entry, {
+        startDelayMs: REVEAL_START_DELAY_MS,
+        durationMs: REVEAL_DURATION_MS,
+        motion: {
+          kind,
+          startDelayMs: REVEAL_START_DELAY_MS,
+          durationMs: REVEAL_DURATION_MS,
+        },
+      });
+    });
+  }
+</script>

@@ -1,0 +1,64 @@
+---
+import { aboutContent } from '../content/about';
+
+/**
+ * AboutSection.astro — the About_Section body.
+ *
+ * Renders the short, first-person About blurb from the Zod-validated
+ * `aboutContent` module as a readable prose paragraph. This component
+ * intentionally does NOT own the `<section id="about">` landmark or the
+ * `#about-heading` <h2> — those live in `index.astro`, and a later composition
+ * step drops this content beneath them. Rendering the heading here would
+ * duplicate the landmark, so the root is a plain content container.
+ *
+ * Motion (Req 8, wired client-side through the single AnimationEngine facade):
+ * - The blurb is scroll-revealed once per page load through the same
+ *   `getAnimationEngine().reveal(...)` wiring the other sections use
+ *   (see HomelabSection.astro), always ending in its fully visible final
+ *   state.
+ * - Reduced-motion and animation-failure fallbacks are handled centrally
+ *   inside the engine, and the block renders in its final visible state by
+ *   default so the content is never hidden without JS (or when a reveal
+ *   fails / reduced motion is preferred).
+ */
+const { aboutText } = aboutContent;
+---
+
+<div class="about mt-4 w-full text-left" data-about>
+  {/* First-person intro rendered as readable prose. Final-visible by default
+      so reduced-motion / no-JS visitors always see it. */}
+  <p
+    class="about__text text-sm leading-relaxed text-muted-foreground"
+    data-about-reveal
+  >
+    {aboutText}
+  </p>
+</div>
+
+<script>
+  import { getAnimationEngine } from '../lib/animation/AnimationEngine';
+
+  // Reveal timing mirrors the sibling sections and stays within the Req 8
+  // motion bounds; the engine clamps defensively to the same bounds and owns
+  // the reduced-motion (final-visible) and animation-failure fallbacks.
+  const REVEAL_START_DELAY_MS = 80;
+  const REVEAL_DURATION_MS = 700;
+
+  const engine = getAnimationEngine();
+  const block = document.querySelector<HTMLElement>('[data-about-reveal]');
+
+  if (block) {
+    // Scroll-reveal the About blurb once per load, ending fully visible. The
+    // paragraph already renders in its final visible state by default, so
+    // reduced-motion / no-JS visitors are unaffected.
+    engine.reveal(block, {
+      startDelayMs: REVEAL_START_DELAY_MS,
+      durationMs: REVEAL_DURATION_MS,
+      motion: {
+        kind: 'translate',
+        startDelayMs: REVEAL_START_DELAY_MS,
+        durationMs: REVEAL_DURATION_MS,
+      },
+    });
+  }
+</script>

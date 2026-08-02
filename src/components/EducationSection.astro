@@ -1,0 +1,162 @@
+---
+import { education } from '../content/education';
+
+/**
+ * EducationSection.astro — the Education section body.
+ *
+ * Renders the validated academic history from `content/education.ts` as clean
+ * card entries. Each entry shows the school, degree, completion year, and any
+ * extra detail (e.g. CGPA), fronted by a small rounded avatar-style placeholder
+ * carrying the school's initial — mirroring the inspiration's ResumeCard avatar.
+ *
+ * Like the sibling section components, this intentionally does NOT own a
+ * `<section>` landmark or an `h2` heading. It renders only the section's inner
+ * body so the composition step in `index.astro` can wrap it as it sees fit and
+ * never ends up with a duplicated heading.
+ *
+ * Motion mirrors HomelabSection.astro: each entry is scroll-revealed once per
+ * page load through the single AnimationEngine facade. Every entry renders in
+ * its final, fully visible state by default so content is never hidden without
+ * JS, and reduced-motion / animation-failure fallbacks are handled centrally
+ * inside the engine.
+ */
+
+/** First alphanumeric character of the school name, for the avatar initial. */
+const initialOf = (name: string): string => {
+  const trimmed = name.trim();
+  return trimmed.length > 0 ? trimmed[0].toUpperCase() : '?';
+};
+---
+
+<div class="education" data-education>
+  <ul class="education__list mt-6 flex flex-col gap-4" role="list">
+    {
+      education.map((entry) => (
+        <li>
+          <article
+            class="education-card"
+            data-education-entry
+            data-school={entry.school}
+          >
+            <div class="education-card__avatar" aria-hidden="true">
+              {initialOf(entry.school)}
+            </div>
+
+            <div class="education-card__body">
+              <div class="education-card__header">
+                <h3 class="education-card__school">{entry.school}</h3>
+                <span class="education-card__end tabular-nums">
+                  {entry.start ? `${entry.start} - ${entry.end}` : entry.end}
+                </span>
+              </div>
+
+              <p class="education-card__degree">{entry.degree}</p>
+
+              {entry.detail && (
+                <p class="education-card__detail">{entry.detail}</p>
+              )}
+            </div>
+          </article>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style>
+  /* Every card renders in its final, fully visible state by default so all
+     education content stays visible even if JS never runs or a reveal fails.
+     The engine applies the entrance offset by JS only once it confirms it is
+     live. All colors come from the shared theme tokens. */
+  .education-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(var(--border));
+    background: rgb(var(--card) / 0.6);
+    padding: 1.25rem;
+  }
+
+  .education-card__avatar {
+    display: flex;
+    height: 3rem;
+    width: 3rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(var(--border));
+    background: rgb(var(--muted));
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: rgb(var(--foreground));
+  }
+
+  .education-card__body {
+    display: flex;
+    min-width: 0;
+    flex-grow: 1;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .education-card__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .education-card__school {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(var(--foreground));
+  }
+
+  .education-card__end {
+    flex: none;
+    font-size: 0.875rem;
+    color: rgb(var(--muted-foreground));
+  }
+
+  .education-card__degree {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: rgb(var(--muted-foreground));
+  }
+
+  .education-card__detail {
+    font-size: 0.875rem;
+    color: rgb(var(--muted-foreground));
+  }
+</style>
+
+<script>
+  import { getAnimationEngine } from '../lib/animation/AnimationEngine';
+
+  // Reveal timing stays within the same bounds the engine enforces (start
+  // <=200ms, complete <=1000ms); the engine clamps defensively regardless.
+  const REVEAL_START_DELAY_MS = 80;
+  const REVEAL_DURATION_MS = 700;
+
+  const engine = getAnimationEngine();
+  const entries = document.querySelectorAll<HTMLElement>(
+    '[data-education-entry]',
+  );
+
+  entries.forEach((entry) => {
+    // Scroll-reveal each education entry once per load, ending fully visible.
+    // Reduced-motion and animation-failure fallbacks are handled centrally in
+    // the engine — the entry already renders in its final visible state.
+    engine.reveal(entry, {
+      startDelayMs: REVEAL_START_DELAY_MS,
+      durationMs: REVEAL_DURATION_MS,
+      motion: {
+        kind: 'translate',
+        startDelayMs: REVEAL_START_DELAY_MS,
+        durationMs: REVEAL_DURATION_MS,
+      },
+    });
+  });
+</script>

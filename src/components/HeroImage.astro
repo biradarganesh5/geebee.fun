@@ -1,0 +1,321 @@
+---
+import { heroContent } from '../content/hero';
+
+/**
+ * HeroImage.astro — the Landing_Page Hero_Image, rendered as one of two layers.
+ *
+ * The portrait workspace photo (intrinsic 3000x3878) is the primary visual
+ * element (Req 1.1) and is always shown preserving its aspect ratio without
+ * stretch/skew (Req 1.2). To show the WHOLE portrait on wide/landscape screens
+ * (instead of cover-cropping a slice) the hero composes this component twice:
+ *
+ * - `variant="background"` — the same image scaled to COVER the full hero,
+ *   heavily blurred and dimmed, so the gutters around the contained photo are
+ *   never empty. The focal point (center-x, top 25%) is kept visible via the
+ *   pure `computeCoverTransform` utility applied client-side (Req 1.3). This
+ *   layer is decorative (`aria-hidden`).
+ * - `variant="foreground"` (default) — the same image shown in full via CSS
+ *   `object-fit: contain`, so the entire 3000x3878 photo is visible, height-
+ *   capped to the hero/viewport and centered. Its rendered rectangle is sized
+ *   by the parent (see index.astro `.hero-foreground`), so the HotspotLayer that
+ *   overlays it can project hotspots with a clean 1:1 mapping.
+ *
+ * Progressive loading (Req 10.1/10.2), applied to both layers:
+ * - A base64 LQIP blur placeholder paints immediately and is held until the
+ *   full-resolution image decodes.
+ * - A responsive `<picture>` serves viewport-matched tiers (small/medium/large)
+ *   whose breakpoints mirror `selectImageAsset` (<=480 / 481-1024 / >1024).
+ *
+ * Resilience (foreground layer, Req 1.6 / 10.4):
+ * - If the image has not loaded within 5000ms, a fallback placeholder is shown
+ *   while every other Landing_Page element stays visible and interactive.
+ * - If the image errors, the broken image is hidden (no broken-image icon), its
+ *   descriptive alt text is shown in place, and the layout dimensions (the
+ *   contained box) are preserved so there is no layout shift.
+ */
+interface Props {
+  /** Which layer to render: the blurred cover backdrop or the contained photo. */
+  variant?: 'foreground' | 'background';
+  /** Extra classes for the root element (lets the parent position the layer). */
+  class?: string;
+  /** Descriptive alternative text; also shown in place on load failure. */
+  alt?: string;
+}
+
+const {
+  variant = 'foreground',
+  class: className,
+  alt = "Ganesh Biradar's gaming room and workspace, featuring his gaming PC and soldering station.",
+} = Astro.props;
+
+const { assets, intrinsicWidth, intrinsicHeight } = heroContent;
+
+const isBackground = variant === 'background';
+---
+
+<div
+  class:list={['hero-image', `hero-image--${variant}`, className]}
+  data-hero-image
+  data-hero-variant={variant}
+  data-load-timeout="5000"
+  aria-hidden={isBackground ? 'true' : undefined}
+>
+  {/* LQIP blur placeholder — paints within 500ms, held until decode (Req 10.1). */}
+  <div
+    class="hero-image__lqip"
+    data-hero-lqip
+    aria-hidden="true"
+    style={`background-image:url(${assets.lqip})`}
+  >
+  </div>
+
+  {/* Responsive tiers by viewport (Req 10.2); large tier is the default src. */}
+  <picture class="hero-image__picture">
+    <source media="(max-width: 480px)" srcset={assets.small} />
+    <source media="(max-width: 1024px)" srcset={assets.medium} />
+    <img
+      class="hero-image__img"
+      data-hero-img
+      src={assets.large}
+      srcset={`${assets.large} ${intrinsicWidth}w`}
+      sizes="100vw"
+      width={intrinsicWidth}
+      height={intrinsicHeight}
+      alt={isBackground ? '' : alt}
+      decoding="async"
+      fetchpriority={isBackground ? 'low' : 'high'}
+    />
+  </picture>
+
+  {/* Fallback shown on 5s timeout (Req 1.6) or load error (Req 10.4). Holds the
+      layout dimensions and surfaces the alt text instead of a broken icon.
+      Only the foreground layer surfaces this; the background is decorative. */}
+  {
+    !isBackground && (
+      <div class="hero-image__fallback" data-hero-fallback hidden aria-hidden="true">
+        <p class="hero-image__fallback-text" data-hero-fallback-text>
+          {alt}
+        </p>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .hero-image {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  /* The background layer sits behind the contained photo and fills the whole
+     hero; a solid base keeps the box from ever flashing empty. */
+  .hero-image--background {
+    background-color: rgb(var(--background));
+  }
+
+  .hero-image__lqip {
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+    transition: opacity 400ms ease;
+    opacity: 1;
+  }
+
+  /* Foreground LQIP mirrors the contained photo: the whole placeholder is shown
+     (contain) so it lines up with the decoded image and never crops. */
+  .hero-image--foreground .hero-image__lqip {
+    background-size: contain;
+    background-position: center;
+    filter: blur(12px);
+  }
+
+  /* Background LQIP mirrors the blurred cover backdrop. */
+  .hero-image--background .hero-image__lqip {
+    background-size: cover;
+    background-position: 50% 12.5%; /* center-x, top 25% (Req 1.3) */
+    filter: blur(28px);
+    transform: scale(1.15);
+  }
+
+  /* Once the full image has decoded, the placeholder fades away. */
+  .hero-image[data-loaded='true'] .hero-image__lqip {
+    opacity: 0;
+  }
+
+  .hero-image__picture {
+    display: contents;
+  }
+
+  .hero-image__img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+
+  /* Foreground: show the WHOLE portrait (Req 1.1, 1.2). The parent
+     `.hero-foreground` box already has the 3000:3878 aspect ratio, so
+     `contain` renders the full image edge-to-edge with no crop and no gaps. */
+  .hero-image--foreground .hero-image__img {
+    object-fit: contain;
+    object-position: center;
+  }
+
+  /* Background: cover the full hero, then blur + dim so it reads as an ambient
+     backdrop behind the contained photo. The client script replaces the native
+     cover with an exact computeCoverTransform placement for the focal point. */
+  .hero-image--background .hero-image__img {
+    object-fit: cover;
+    object-position: 50% 12.5%;
+    filter: blur(28px) brightness(0.45) saturate(1.1);
+    transform: scale(1.15);
+    will-change: transform;
+  }
+
+  .hero-image[data-loaded='true'] .hero-image__img {
+    opacity: 1;
+  }
+
+  /* On error the image element is hidden entirely so no broken-image icon can
+     appear; the fallback layer takes over (Req 10.4). */
+  .hero-image[data-errored='true'] .hero-image__img {
+    display: none;
+  }
+
+  .hero-image__fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    text-align: center;
+    background: radial-gradient(
+      circle at 50% 25%,
+      rgb(var(--muted)) 0%,
+      rgb(var(--card)) 60%,
+      rgb(var(--background)) 100%
+    );
+  }
+
+  .hero-image__fallback[hidden] {
+    display: none;
+  }
+
+  .hero-image__fallback-text {
+    max-width: 32rem;
+    color: rgb(var(--muted-foreground));
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-image__lqip,
+    .hero-image__img {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import { computeCoverTransform } from '../lib/logic/computeCoverTransform';
+  import { heroContent } from '../content/hero';
+
+  const roots = document.querySelectorAll<HTMLElement>('[data-hero-image]');
+
+  roots.forEach((root) => {
+    const img = root.querySelector<HTMLImageElement>('[data-hero-img]');
+    const fallback = root.querySelector<HTMLElement>('[data-hero-fallback]');
+    if (!img) return;
+
+    const isBackground = root.dataset.heroVariant === 'background';
+
+    const intrinsic = {
+      width: heroContent.intrinsicWidth,
+      height: heroContent.intrinsicHeight,
+    };
+    const focal = heroContent.focal;
+
+    let settled = false;
+
+    /**
+     * Background layer only: place the cover image with an exact cover-fit
+     * transform so it fully covers the hero while preserving the 3000:3878
+     * aspect ratio and keeping the focal point visible (Req 1.2, 1.3). The
+     * foreground layer uses CSS `object-fit: contain` and needs no JS placement.
+     */
+    const applyCover = () => {
+      const box = { width: root.clientWidth, height: root.clientHeight };
+      if (box.width <= 0 || box.height <= 0) return;
+
+      const t = computeCoverTransform(intrinsic, box, focal);
+      img.style.width = `${t.renderedWidth}px`;
+      img.style.height = `${t.renderedHeight}px`;
+      img.style.objectFit = 'fill';
+      // Preserve the ambient scale so the blur never reveals the box edges.
+      img.style.transform = `translate(${t.offsetX}px, ${t.offsetY}px) scale(1.15)`;
+    };
+
+    const reveal = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      if (isBackground) applyCover();
+      root.dataset.loaded = 'true';
+    };
+
+    const showFallback = () => {
+      if (fallback) fallback.hidden = false;
+    };
+
+    /** Req 10.4: hide the broken image (no broken-image icon) and show alt text. */
+    const handleError = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      root.dataset.errored = 'true';
+      showFallback();
+    };
+
+    /**
+     * Req 1.6: if the image has not loaded within 5000ms, surface a fallback
+     * placeholder. Other Landing_Page elements are untouched, so they remain
+     * visible and interactive.
+     */
+    const timeoutMs = Number(root.dataset.loadTimeout ?? '5000');
+    const timeoutId = window.setTimeout(() => {
+      if (settled) return;
+      showFallback();
+    }, timeoutMs);
+
+    const onLoaded = () => {
+      // Prefer decode() so the placeholder is held until the bitmap is ready.
+      if (typeof img.decode === 'function') {
+        img.decode().then(reveal, reveal);
+      } else {
+        reveal();
+      }
+    };
+
+    if (img.complete && img.naturalWidth > 0) {
+      onLoaded();
+    } else if (img.complete && img.naturalWidth === 0) {
+      // Already failed (e.g. missing asset) before the script ran.
+      handleError();
+    } else {
+      img.addEventListener('load', onLoaded, { once: true });
+      img.addEventListener('error', handleError, { once: true });
+    }
+
+    // Keep the background cover-fit correct across viewport changes.
+    if (isBackground) {
+      window.addEventListener('resize', () => {
+        if (root.dataset.loaded === 'true') applyCover();
+      });
+    }
+  });
+</script>

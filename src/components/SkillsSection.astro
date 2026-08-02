@@ -1,0 +1,154 @@
+---
+import { skills } from '../content/skills';
+
+/**
+ * SkillsSection.astro — the body of the Skills_Section.
+ *
+ * Renders ONLY the section body; the enclosing `<section id="skills">` landmark
+ * and its `h2#skills-heading` are provided by the page composition in
+ * `index.astro`.
+ *
+ * Content:
+ * - Every validated skill label from `content/skills.ts` as a compact,
+ *   theme-token badge/pill in a wrapping cloud (uniqueness enforced by Zod at
+ *   build time).
+ *
+ * Motion — staggered blur-fade that plays ON PAGE LOAD (not on scroll):
+ * - Because the Skills cloud sits near the top of the page, a scroll-triggered
+ *   reveal left it looking empty until the visitor scrolled. Instead, each badge
+ *   does a staggered opacity + translate + blur entrance that starts as soon as
+ *   the page loads (the inspiration's staggered BlurFade look).
+ * - It is no-JS-safe AND reduced-motion-safe: the hidden pre-reveal state is
+ *   applied ONLY by an inline script, and only when motion is allowed. With no
+ *   JS, or under `prefers-reduced-motion`, the badges simply render fully
+ *   visible and static.
+ */
+---
+
+{/* Body only — the enclosing <section id="skills"> + h2 come from the page. */}
+<div class="skills-body mt-6" data-skills>
+  <ul id="skills-cloud" class="skills-cloud" role="list">
+    {
+      skills.map((skill) => (
+        <li>
+          <span class="skill-badge rounded-full border border-border bg-muted px-3 py-1 text-sm text-foreground">
+            {skill}
+          </span>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+{/*
+  Inline (synchronous) pre-hide: runs the moment the <ul> above is parsed —
+  before paint — so there is no flash of visible→hidden. It only hides the
+  badges when motion is allowed; under reduced motion (or with no JS) the badges
+  stay in their default fully-visible state.
+*/}
+<script is:inline>
+  (function () {
+    try {
+      if (
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        return;
+      }
+      var cloud = document.getElementById('skills-cloud');
+      if (cloud) cloud.classList.add('skills-cloud--pre');
+    } catch (e) {
+      /* If anything goes wrong, leave the badges visible. */
+    }
+  })();
+</script>
+
+<style>
+  /* A wrapping badge cloud. `flex-wrap` + `min-width: 0` keep long labels from
+     forcing horizontal overflow at narrow (360px) viewports. */
+  .skills-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    margin-block: 0;
+    list-style: none;
+    min-width: 0;
+  }
+
+  .skills-cloud > li {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .skill-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    white-space: nowrap;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    /* The entrance transition (only visible once the pre-hide class is applied
+       by the inline script and then each badge is flipped to `is-in`). */
+    transition:
+      opacity 0.45s ease,
+      transform 0.45s ease,
+      filter 0.45s ease;
+  }
+
+  /* Pre-reveal (hidden) state — applied by the inline script ONLY when motion
+     is allowed, so no-JS / reduced-motion visitors never see a hidden cloud. */
+  .skills-cloud--pre .skill-badge {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+
+  /* Revealed state — added per badge on load with a stagger. Placed after the
+     pre-reveal rule so it wins at equal specificity. */
+  .skills-cloud--pre .skill-badge.is-in {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  /* Reduced motion: never transition, never hide (defensive on top of the
+     inline script's guard). */
+  @media (prefers-reduced-motion: reduce) {
+    .skill-badge {
+      transition: none;
+    }
+    .skills-cloud--pre .skill-badge {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+</style>
+
+<script>
+  // Staggered blur-fade that plays on load. Each badge is revealed with a small
+  // incremental delay so the cloud fills in progressively (the inspiration's
+  // staggered BlurFade), immediately — not gated on scroll. Guarded for
+  // reduced motion (the inline script won't have hidden anything, so this
+  // simply no-ops the class add and the badges stay visible).
+  const BASE_DELAY_MS = 60;
+  const STAGGER_STEP_MS = 30;
+
+  const reduce =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const cloud = document.getElementById('skills-cloud');
+  if (cloud && !reduce) {
+    const badges = cloud.querySelectorAll<HTMLElement>('.skill-badge');
+    badges.forEach((badge, index) => {
+      window.setTimeout(
+        () => badge.classList.add('is-in'),
+        BASE_DELAY_MS + index * STAGGER_STEP_MS,
+      );
+    });
+  }
+</script>
