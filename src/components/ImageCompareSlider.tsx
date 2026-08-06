@@ -246,10 +246,6 @@ export default function ImageCompareSlider({
     <div
       ref={containerRef}
       data-testid="image-compare-slider"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
       style={boxStyle}
       className="relative w-full touch-none select-none overflow-hidden rounded-lg border border-border bg-card"
     >
@@ -273,6 +269,10 @@ export default function ImageCompareSlider({
         aria-valuenow={rounded}
         aria-orientation="horizontal"
         onKeyDown={handleKeyDown}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         style={dividerStyle}
         className={`absolute inset-y-0 z-10 -translate-x-1/2 cursor-ew-resize outline-none ${
           dragging ? '' : 'transition-[left] duration-100 ease-out'
