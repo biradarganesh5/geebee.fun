@@ -16,8 +16,8 @@ import { homelabComponents, services } from '../content/homelab';
  * every required hardware component and all six self-hosted services (each
  * with its purpose text) appear in the rendered HTML.
  *
- * Covers Req 4.1 (TrueNAS storage server), Req 4.2 (mini PC cluster on an
- * 8-port gigabit switch), Req 4.3 (i5 master node + worker mini PCs running
+ * Covers Req 4.1 (TrueNAS storage server), Req 4.2 (mini PC cluster on a
+ * 4-port gigabit switch), Req 4.3 (i5 master node + worker mini PCs running
  * k3s and Proxmox), and Req 4.4 (the exact six services with purposes).
  */
 describe('HomelabSection content presence', () => {
@@ -49,16 +49,16 @@ describe('HomelabSection content presence', () => {
     expect(html.toLowerCase()).toContain('storage');
   });
 
-  it('describes the mini PC cluster on an 8-port gigabit switch (Req 4.2)', () => {
+  it('describes the mini PC cluster on a 4-port gigabit switch (Req 4.2)', () => {
     expect(html.toLowerCase()).toContain('mini pc');
     expect(html.toLowerCase()).toContain('cluster');
-    expect(html.toLowerCase()).toContain('8-port gigabit switch');
+    expect(html.toLowerCase()).toContain('4-port gigabit switch');
   });
 
   it('describes the i5 master node + worker mini PCs running k3s and Proxmox (Req 4.3)', () => {
     const lower = html.toLowerCase();
     expect(lower).toContain('i5');
-    expect(lower).toContain('master node');
+    expect(lower).toContain('master k3s node');
     expect(lower).toContain('worker node');
     expect(lower).toContain('k3s');
     expect(lower).toContain('proxmox');

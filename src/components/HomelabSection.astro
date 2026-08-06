@@ -7,7 +7,7 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
  *
  * Renders the validated homelab content from `content/homelab.ts`:
  * - The three hardware components (Req 4.1–4.3): the TrueNAS storage server,
- *   the mini PC cluster on an 8-port gigabit switch, and the i5 master node
+ *   the mini PC cluster on a 4-port gigabit switch, and the i5 master node
  *   plus worker mini PCs running k3s and Proxmox.
  * - The exactly-six self-hosted services (Req 4.4): Jellyfin, Immich, Seafile,
  *   qBittorrent, WireGuard, and Vaultwarden, each with its purpose description.
@@ -79,13 +79,28 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
     {
       services.map((service) => (
         <li>
+          {/* Name-only by default; hovering or focusing the card blurs the
+              name and pops the purpose up over it. `tabindex`/`aria` keep the
+              reveal reachable by keyboard and announced to screen readers. */}
+          {/* Name + a plain-language analogy are always shown. Hovering or
+              focusing the card reveals the full purpose over a tinted,
+              blurred backdrop — all within the same card. */}
           <article
             class="homelab-service"
             data-homelab-component
             data-service-name={service.name}
+            tabindex="0"
+            aria-label={`${service.name}: ${service.purpose}`}
           >
-            <h4 class="homelab-service__name">{service.name}</h4>
-            <p class="homelab-service__purpose">{service.purpose}</p>
+            <div class="homelab-service__front">
+              <h4 class="homelab-service__name">{service.name}</h4>
+              {service.analogy && (
+                <p class="homelab-service__analogy">{service.analogy}</p>
+              )}
+            </div>
+            <div class="homelab-service__reveal">
+              <p class="homelab-service__purpose">{service.purpose}</p>
+            </div>
           </article>
         </li>
       ))
@@ -122,16 +137,99 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
     color: rgb(var(--muted-foreground));
   }
 
+  /* Service cards show the name + analogy by default; hovering/focusing reveals
+     the full purpose over a tinted, blurred backdrop — all inside the card.
+     `position` anchors the reveal layer; `overflow:hidden` clips it to the
+     rounded corners. */
+  .homelab-service {
+    position: relative;
+    overflow: hidden;
+    align-items: center;
+    justify-content: center;
+    min-height: 6rem;
+    text-align: center;
+    cursor: pointer;
+    transition:
+      border-color 200ms ease,
+      transform 200ms ease;
+  }
+
+  .homelab-service:hover,
+  .homelab-service:focus-within {
+    border-color: rgb(var(--primary) / 0.6);
+    transform: translateY(-2px);
+  }
+
+  /* Front face: the always-visible name + plain-language analogy. Fades and
+     blurs slightly as the description takes over. */
+  .homelab-service__front {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    transition:
+      opacity 200ms ease,
+      filter 200ms ease;
+  }
+
   .homelab-service__name {
     font-size: 1rem;
     font-weight: 600;
     color: rgb(var(--accent));
   }
 
-  .homelab-service__purpose {
-    font-size: 0.875rem;
-    line-height: 1.45;
+  .homelab-service__analogy {
+    font-size: 0.75rem;
     color: rgb(var(--muted-foreground));
+  }
+
+  /* Reveal layer: fills the card, tinted translucent accent color + blur so the
+     name/analogy behind it softly blur through. Hidden until hover/focus. */
+  .homelab-service__reveal {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9rem;
+    border-radius: inherit;
+    background: rgb(var(--primary) / 0.14);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+  }
+
+  /* Smaller, tidy description text. */
+  .homelab-service__purpose {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: rgb(var(--card-foreground));
+  }
+
+  .homelab-service:hover .homelab-service__reveal,
+  .homelab-service:focus-within .homelab-service__reveal {
+    opacity: 1;
+  }
+
+  .homelab-service:hover .homelab-service__front,
+  .homelab-service:focus-within .homelab-service__front {
+    opacity: 0.25;
+    filter: blur(2px);
+  }
+
+  .homelab-service:focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Reduced motion: reveal instantly with no transition. */
+  @media (prefers-reduced-motion: reduce) {
+    .homelab-service,
+    .homelab-service__front,
+    .homelab-service__reveal {
+      transition: none;
+    }
   }
 </style>
 

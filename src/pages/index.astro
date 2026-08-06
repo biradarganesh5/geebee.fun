@@ -223,6 +223,30 @@ const headingClass = 'text-3xl font-semibold tracking-tight md:text-4xl';
       <h2 id="contact-heading" class={`${headingClass} text-center`}>Get in Touch</h2>
       <ContactSection />
     </section>
+
+    <!-- Self-hosting badge (easter egg, now front-and-center). This whole site
+         is served from Ganesh's homelab, so we say so proudly: a pill with a
+         live "online" pulse dot. Clicking it also fires the console banner +
+         toast wired up in Layout via the homelab easter egg module. -->
+    <footer class="mx-auto max-w-2xl px-4 pb-8 text-center">
+      <button
+        id="homelab-badge"
+        type="button"
+        class="group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/60 hover:text-foreground"
+        aria-label="This website is self-hosted on my homelab. Click for details."
+      >
+        <span class="relative flex h-2.5 w-2.5" aria-hidden="true">
+          <span
+            class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75 motion-reduce:animate-none"
+          ></span>
+          <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+        </span>
+        <span>
+          Self-hosted on my
+          <span class="font-medium text-primary">homelab</span>
+        </span>
+      </button>
+    </footer>
   </main>
 
 </Layout>

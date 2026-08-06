@@ -16,7 +16,7 @@ interface Props {
 }
 
 const {
-  title = 'Ganesh Biradar — Portfolio',
+  title = 'Ganesh Biradar',
   description = 'Personal portfolio of Ganesh Biradar: homelabbing, PCB designing, 3D modelling, PC building, and AWS DevOps engineering.',
   ogImage = '/favicon.svg',
 } = Astro.props;
@@ -67,7 +67,7 @@ const resolvedOgImage = Astro.site
     <meta name="author" content="Ganesh Biradar" />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="canonical" href={canonicalURL} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -99,9 +99,14 @@ const resolvedOgImage = Astro.site
       // unavailable or setup fails, the utility promotes all opt-in media
       // immediately so nothing stays hidden.
       import { initLazyMedia } from '../lib/dom/lazyMedia';
+      // Easter egg: this site is self-hosted on the homelab. Prints a styled
+      // console banner and arms the Konami code (↑↑↓↓←→←→ B A) to reveal a
+      // little toast. Purely decorative and fully self-guarded.
+      import { initHomelabEasterEgg } from '../lib/dom/easterEgg';
 
       if (typeof window !== 'undefined') {
         initLazyMedia();
+        initHomelabEasterEgg();
       }
     </script>
   </body>

@@ -34,5 +34,5 @@ export type About = z.infer<typeof AboutSchema>;
  */
 export const aboutContent: About = AboutSchema.parse({
   aboutText:
-    "I'm an AWS-certified DevOps and Cloud Engineer with 3+ years spent designing, automating, and scaling production workloads across AWS, AWS China, and Alibaba Cloud. I led a full ECS-to-EKS migration, drove $24K+/year in cloud cost savings, and cut deployment times by up to 80% with Packer-baked AMIs and GitOps CI/CD. I'm hands-on across Kubernetes, GitOps, IaC, and observability, with a soft spot for FinOps, reliability, and AI-driven automation.",
+    "I'm an AWS-certified DevOps and Cloud Engineer with 3+ years spent designing, automating, and scaling production workloads across AWS, AWS China, and Alibaba Cloud. I like to solve difficult problems; as well as optimize and make systems more efficient. I'm currently learning by building an on-prem multi-architecture Homelab running proxmox and Kubernetes. I'm hands-on across Kubernetes, GitOps, IaC, and observability, with a soft spot for FinOps, reliability, and AI-driven automation.",
 });
