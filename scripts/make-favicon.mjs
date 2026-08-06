@@ -2,8 +2,7 @@
 // renders crisp (not squished) in the browser tab. Outputs 512x512 PNG.
 import sharp from 'sharp';
 
-const SRC =
-  'public/images/pixel-art-illustration-straw-hat-pixelated-farmer-cap-straw-hat-farmer-icon-pixelated-game_1038602-377.png';
+const SRC = 'public/images/icons/straw-hat-favicon.png';
 const OUT = 'public/favicon.png';
 const SIZE = 512;
 

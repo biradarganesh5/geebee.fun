@@ -25,7 +25,7 @@ type Theme = 'light' | 'dark';
 const MIN_TARGET_PX = 44;
 
 /** Easter-egg image floated up from the toggle when switching to light mode. */
-const EYES_IMAGE_SRC = '/images/my-eyes.jpeg';
+const EYES_IMAGE_SRC = '/images/profile/my-eyes.jpeg';
 
 const iconProps = {
   width: 20,

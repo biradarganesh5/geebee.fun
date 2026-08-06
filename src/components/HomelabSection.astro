@@ -37,10 +37,18 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
     from clustered compute to media, photos, files, and secure remote access.
   </p>
 
-  {/* Before/after compare slider, right below the intro. Placeholder-ready:
-      shows tasteful placeholders until diagram/photo images are added. */}
+  {/* Before/after compare slider: drag between the rack diagram and the real
+      rack photo. */}
   <div class="mx-auto mt-6 max-w-sm">
-    <ImageCompareSlider client:visible beforeLabel="Diagram" afterLabel="Photo" />
+    <ImageCompareSlider
+      client:visible
+      beforeSrc="/images/homelab/rack-diagram.png"
+      afterSrc="/images/homelab/rack-photo.png"
+      beforeLabel="Diagram"
+      afterLabel="Photo"
+      alt="Homelab rack: diagram compared with the real build"
+      aspectRatio="3695 / 6354"
+    />
   </div>
 
   <!-- Hardware / infrastructure components (Req 4.1–4.3). -->

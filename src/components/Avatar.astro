@@ -14,8 +14,8 @@
  * never itself fail to run. When `src` is empty the component starts in the
  * errored state, so the initials show cleanly without ever requesting an image.
  *
- * NOTE: `profile.avatarUrl` currently points at `/images/avatar.jpg`, which
- * does not exist yet — so by default the initials fallback ("GB") is shown.
+ * NOTE: `profile.avatarUrl` points at `/images/profile/avatar.jpg`; if the file
+ * is missing the component falls back to the initials ("GB").
  *
  * Theme tokens (from tailwind.config.mjs): a subtle `border-border`, a neutral
  * `bg-muted` base, and `text-foreground` initials keep it correct in both the

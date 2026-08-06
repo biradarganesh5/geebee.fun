@@ -282,7 +282,7 @@ export default function ImageCompareSlider({
         {/* The visible divider line. */}
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-border"
+          className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-white"
         />
         {/* The grab target — centered on the divider, >=44x44px. */}
         <span

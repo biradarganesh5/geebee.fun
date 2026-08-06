@@ -83,7 +83,7 @@ export const profile: Profile = ProfileSchema.parse({
   location: 'Pune, MH',
   description:
     'Certified DevOps Engineer/Nerd. I love building things and helping people. Currently looking for work.',
-  avatarUrl: '/images/avatar.jpg',
+  avatarUrl: '/images/profile/avatar.jpg',
   email: 'biradarganesh5@gmail.com',
   socials: [
     {
