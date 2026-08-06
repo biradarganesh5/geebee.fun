@@ -42,7 +42,7 @@ import CertificationCard from './CertificationCard.tsx';
   >
     {
       certifications.map((cert) => (
-        <li>
+        <li data-cert-reveal>
           <CertificationCard
             client:visible
             name={cert.name}
@@ -54,3 +54,33 @@ import CertificationCard from './CertificationCard.tsx';
     }
   </ul>
 </section>
+
+<script>
+  import { getAnimationEngine } from '../lib/animation/AnimationEngine';
+
+  // Reveal timing mirrors the sibling sections (start <=200ms, complete
+  // <=1000ms); the engine clamps defensively to the same bounds.
+  const REVEAL_START_DELAY_MS = 80;
+  const REVEAL_DURATION_MS = 700;
+
+  if (typeof window !== 'undefined') {
+    const engine = getAnimationEngine();
+    const cards = document.querySelectorAll<HTMLElement>('[data-cert-reveal]');
+
+    cards.forEach((card) => {
+      // Scroll-reveal each certification card once per load, ending fully
+      // visible. Reduced-motion and animation-failure fallbacks are handled
+      // centrally inside the engine — the card already renders in its final
+      // visible state by default.
+      engine.reveal(card, {
+        startDelayMs: REVEAL_START_DELAY_MS,
+        durationMs: REVEAL_DURATION_MS,
+        motion: {
+          kind: 'translate',
+          startDelayMs: REVEAL_START_DELAY_MS,
+          durationMs: REVEAL_DURATION_MS,
+        },
+      });
+    });
+  }
+</script>

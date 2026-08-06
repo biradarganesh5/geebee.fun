@@ -32,14 +32,14 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
 ---
 
 <div class="homelab mt-6" data-homelab>
-  <p class="homelab__intro max-w-2xl text-base text-muted-foreground">
+  <p class="homelab__intro max-w-2xl text-base text-muted-foreground" data-homelab-reveal>
     A self-hosted stack running on mini PCs and dedicated storage — everything
     from clustered compute to media, photos, files, and secure remote access.
   </p>
 
   {/* Before/after compare slider: drag between the rack diagram and the real
       rack photo. */}
-  <div class="mx-auto mt-6 max-w-sm">
+  <div class="mx-auto mt-6 max-w-sm" data-homelab-reveal>
     <ImageCompareSlider
       client:visible
       beforeSrc="/images/homelab/rack-diagram.webp"
@@ -52,7 +52,7 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
   </div>
 
   <!-- Hardware / infrastructure components (Req 4.1–4.3). -->
-  <h3 class="homelab__subheading mt-12 text-xl font-semibold tracking-tight">
+  <h3 class="homelab__subheading mt-12 text-xl font-semibold tracking-tight" data-homelab-reveal>
     Infrastructure
   </h3>
   <ul
@@ -77,7 +77,7 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
 
   <!-- Self-hosted services (Req 4.4): exactly the six named services, each
        with its purpose. -->
-  <h3 class="homelab__subheading mt-16 text-xl font-semibold tracking-tight">
+  <h3 class="homelab__subheading mt-16 text-xl font-semibold tracking-tight" data-homelab-reveal>
     Self-hosted services
   </h3>
   <ul
@@ -250,8 +250,12 @@ import ImageCompareSlider from './ImageCompareSlider.tsx';
   const REVEAL_DURATION_MS = 700;
 
   const engine = getAnimationEngine();
+  // Reveal the intro, the rack compare slider, and the subheadings
+  // (`data-homelab-reveal`) alongside the hardware/service cards
+  // (`data-homelab-component`) so the whole section animates in on scroll,
+  // matching the sibling sections.
   const components = document.querySelectorAll<HTMLElement>(
-    '[data-homelab-component]',
+    '[data-homelab-component], [data-homelab-reveal]',
   );
 
   components.forEach((component) => {
