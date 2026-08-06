@@ -247,7 +247,7 @@ export default function ImageCompareSlider({
       ref={containerRef}
       data-testid="image-compare-slider"
       style={boxStyle}
-      className="relative w-full touch-none select-none overflow-hidden rounded-lg border border-border bg-card"
+      className="relative w-full select-none overflow-hidden rounded-lg border border-border bg-card"
     >
       {/* Bottom ("after") layer — fully visible, revealed by the clip above. */}
       <div className="absolute inset-0">
@@ -274,7 +274,7 @@ export default function ImageCompareSlider({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         style={dividerStyle}
-        className={`absolute inset-y-0 z-10 -translate-x-1/2 cursor-ew-resize outline-none ${
+        className={`absolute inset-y-0 z-10 -translate-x-1/2 cursor-ew-resize touch-none outline-none ${
           dragging ? '' : 'transition-[left] duration-100 ease-out'
         } motion-reduce:transition-none`}
         data-testid="image-compare-handle"
