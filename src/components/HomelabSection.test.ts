@@ -57,7 +57,6 @@ describe('HomelabSection content presence', () => {
 
   it('describes the i5 master node + worker mini PCs running k3s and Proxmox (Req 4.3)', () => {
     const lower = html.toLowerCase();
-    expect(lower).toContain('i5');
     expect(lower).toContain('master k3s node');
     expect(lower).toContain('worker node');
     expect(lower).toContain('k3s');

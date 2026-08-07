@@ -82,7 +82,7 @@ export const homelabComponents: HomelabComponent[] = z
       id: 'k3s-proxmox-nodes',
       title: 'k3s + Proxmox Nodes',
       description:
-        'An i5 master k3s node with Mac mini worker nodes, running k3s and Proxmox.',
+        'A master k3s node with multi-architecture worker nodes, running k3s and Proxmox.',
     },
   ]);
 
