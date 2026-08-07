@@ -70,19 +70,19 @@ export const homelabComponents: HomelabComponent[] = z
       id: 'truenas-storage',
       title: 'TrueNAS Storage Server',
       description:
-        'A dedicated server running TrueNAS that serves as the central storage backbone of the homelab, pooling drives for reliable, redundant network storage of media, backups, and files.',
+        'A TrueNAS server pooling drives into redundant storage for media, backups, and files.',
     },
     {
       id: 'mini-pc-cluster',
       title: 'Mini PC Cluster',
       description:
-        'A cluster of mini PCs networked together through a 4-port gigabit switch, giving every node fast wired connectivity for clustered workloads and inter-node traffic.',
+        'Mini PCs clustered over a 4-port gigabit switch for fast, wired connectivity.',
     },
     {
       id: 'k3s-proxmox-nodes',
       title: 'k3s + Proxmox Nodes',
       description:
-        'An i5 mini PC acts as the main master k3s node, with additional mac mini joining as worker nodes. Together they run k3s for lightweight Kubernetes orchestration and Proxmox for virtualization.',
+        'An i5 master k3s node with Mac mini worker nodes, running k3s and Proxmox.',
     },
   ]);
 

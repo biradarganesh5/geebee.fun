@@ -61,7 +61,7 @@ export const projects: Projects = Projects.parse([
   {
     title: 'AI-Driven Pipeline Failure Notifier',
     description:
-      'Event-driven notifier that watches Argo Workflows CI/CD pipelines, detects failures in real time, and integrates an LLM to parse logs, run automated root-cause analysis, and route rich, contextual fix suggestions to Slack — cutting mean time to resolution and manual triage.',
+      'Event-driven notifier that watches Argo Workflows pipelines and uses an LLM to parse logs, run root-cause analysis, and post fix suggestions to Slack — cutting triage time.',
     dates: '2025',
     tags: ['Python', 'Argo Workflows', 'Kubernetes', 'LLM', 'Slack API'],
     links: [],
@@ -69,7 +69,7 @@ export const projects: Projects = Projects.parse([
   {
     title: 'ECS to EKS Production Migration',
     description:
-      'Provisioned a production-ready EKS platform with Terraform and Helm (External Secrets via SSM, gp3 storage classes, VPA, ALB ingress with Route53 DNS) and re-platformed legacy ECS task definitions into hardened Kubernetes workloads with least-privilege IRSA roles and network policies during cutover.',
+      'Built a production EKS platform with Terraform and Helm, re-platforming legacy ECS workloads into hardened Kubernetes with IRSA roles and network policies.',
     dates: '2025',
     tags: [
       'Amazon EKS',
