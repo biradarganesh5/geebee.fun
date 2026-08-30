@@ -7,10 +7,22 @@
 # ONE-TIME SETUP
 #   1. Settings -> Actions -> General -> Workflow permissions:
 #        "Read and write permissions"    (lets the job push to GHCR)
-#   2. Create a fine-grained PAT with Contents: Read and write on the private
-#      homelab repo, and add it here as secret HOMELAB_TOKEN.
-#      Required because a workflow's built-in token cannot write to a DIFFERENT
-#      repository.
+#
+#   2. A workflow's built-in token cannot write to a DIFFERENT repository, so
+#      pushing the deploy commit needs its own credential. Use a DEPLOY KEY:
+#
+#        ssh-keygen -t ed25519 -f homelab-deploy -N "" -C "geebee.fun-deploy"
+#
+#      homelab repo -> Settings -> Deploy keys -> Add deploy key
+#        paste homelab-deploy.pub, and TICK "Allow write access"
+#
+#      this repo -> Settings -> Secrets and variables -> Actions
+#        HOMELAB_DEPLOY_KEY = contents of the PRIVATE key file
+#
+#      Chosen over a fine-grained PAT because a deploy key never expires and its
+#      write access is one checkbox, rather than a permission matrix that fails
+#      by granting nothing.
+#
 #   3. After the first successful push, make the GHCR package public:
 #        Profile -> Packages -> geebee.fun -> Package settings -> Change
 #        visibility -> Public
@@ -65,19 +77,31 @@ jobs:
 
       - name: Record the new tag in the homelab repo
         env:
-          GH_TOKEN: ${{ secrets.HOMELAB_TOKEN }}
+          # A DEPLOY KEY rather than a PAT: scoped to exactly one repository,
+          # never expires, and its write permission is a single checkbox instead
+          # of a permission matrix that silently grants nothing when misconfigured.
+          DEPLOY_KEY: ${{ secrets.HOMELAB_DEPLOY_KEY }}
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::error::HOMELAB_TOKEN is not set. The image was pushed, but" \
-                 "Argo CD will not pick it up."
+          if [ -z "${DEPLOY_KEY:-}" ]; then
+            echo "::error::HOMELAB_DEPLOY_KEY is not set. The image was pushed," \
+                 "but Argo CD will not pick it up."
             exit 1
           fi
 
-          git clone --depth 1 \
-            "https://x-access-token:${GH_TOKEN}@github.com/${HOMELAB_REPO}.git" homelab
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Pin GitHub's host key instead of disabling host verification.
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+          # IdentitiesOnly stops ssh from offering any other key the runner has.
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes"
+
+          git clone --depth 1 "git@github.com:${HOMELAB_REPO}.git" homelab
           cd homelab
 
           if ! grep -qE "image: ${IMAGE}:" "${MANIFEST}"; then
